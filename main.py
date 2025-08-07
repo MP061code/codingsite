@@ -2,31 +2,23 @@ import streamlit as st
 import requests
 import urllib.parse
 import openai
+from PIL import Image
 
-# ------------------
-# Auth0 Configuration
-# ------------------
+# Load secrets
 AUTH0_CLIENT_ID = st.secrets["auth0"]["client_id"]
 AUTH0_CLIENT_SECRET = st.secrets["auth0"]["client_secret"]
 AUTH0_DOMAIN = st.secrets["auth0"]["domain"]
 AUTH0_REDIRECT_URI = st.secrets["auth0"]["redirect_uri"]
 
+# Auth0 URLs
 AUTH0_AUTHORIZE_URL = f"https://{AUTH0_DOMAIN}/authorize"
 AUTH0_TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
 AUTH0_USERINFO_URL = f"https://{AUTH0_DOMAIN}/userinfo"
 
-# --------------
-# Streamlit Setup
-# --------------
-st.set_page_config(
-    page_title="Rudrassa AI Assistant",
-    page_icon="🤖",
-    layout="wide"
-)
+# Page setup
+st.set_page_config(page_title="Rudrassa AI", page_icon="🤖", layout="centered")
 
-# --------------
-# Session Storage
-# --------------
+# Session state
 if "user" not in st.session_state:
     st.session_state.user = None
 if "access_token" not in st.session_state:
@@ -34,12 +26,11 @@ if "access_token" not in st.session_state:
 if "response_text" not in st.session_state:
     st.session_state.response_text = ""
 
-# -----------------
-# Auth0 Callback Logic
-# -----------------
+# Handle Auth0 callback
 query_params = st.query_params
 if "code" in query_params and st.session_state.user is None:
     code = query_params["code"]
+
     token_payload = {
         "grant_type": "authorization_code",
         "client_id": AUTH0_CLIENT_ID,
@@ -47,6 +38,7 @@ if "code" in query_params and st.session_state.user is None:
         "code": code,
         "redirect_uri": AUTH0_REDIRECT_URI
     }
+
     token_response = requests.post(AUTH0_TOKEN_URL, json=token_payload)
     token_data = token_response.json()
 
@@ -56,79 +48,65 @@ if "code" in query_params and st.session_state.user is None:
         userinfo_response = requests.get(AUTH0_USERINFO_URL, headers=headers)
         st.session_state.user = userinfo_response.json()
     else:
-        st.error("❌ Failed to authenticate. Please try again.")
+        st.error("❌ Authentication failed. Please try again.")
 
 # -----------------------
 # LOGIN / LOGOUT DISPLAY
 # -----------------------
 if st.session_state.user:
-    st.sidebar.success(f"Logged in as {st.session_state.user['email']}")
+    st.sidebar.success(f"✅ Logged in as {st.session_state.user['email']}")
     if st.sidebar.button("🚪 Logout"):
         st.session_state.user = None
         st.session_state.access_token = None
         st.experimental_set_query_params()
         st.rerun()
 else:
-    # -----------------
-    # Styled Login Page
-    # -----------------
-    st.markdown("""
-        <style>
-        .centered {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding-top: 50px;
-        }
-        .login-btn {
-            background-color: white;
-            border: 1px solid #ccc;
-            padding: 10px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .login-btn:hover {
-            background-color: #f0f0f0;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    # Logo
+    st.image("rudrassaaaa.png", width=180)
 
-    st.markdown('<div class="centered">', unsafe_allow_html=True)
-    st.image("rudrassaaaa.png", width=120)
-    st.markdown("## 🔐 Welcome to Rudrassa AI")
-    st.markdown("Login securely using your Gmail account via Auth0.")
+    st.markdown("## 🔒 Welcome to Rudrassa AI")
+    st.markdown("Login securely with your **Gmail account** via Auth0 to access the AI assistant.")
 
+    # Build login URL
     params = {
         "response_type": "code",
         "client_id": AUTH0_CLIENT_ID,
         "redirect_uri": AUTH0_REDIRECT_URI,
         "scope": "openid profile email",
+        "connection": "google-oauth2"  # force Google login
     }
     login_url = f"{AUTH0_AUTHORIZE_URL}?{urllib.parse.urlencode(params)}"
 
+    # Google login button with icon
+    google_icon = "https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
     st.markdown(f"""
-        <a class="login-btn" href="{login_url}">
-            <img src="https://img.icons8.com/color/24/google-logo.png" alt="Google Icon"/>
-            Login with Google
+        <a href="{login_url}" target="_self" style="text-decoration: none;">
+            <button style="
+                background-color: white;
+                border: 1px solid #ddd;
+                color: #444;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-size: 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+            ">
+                <img src="{google_icon}" width="20" style="margin-right: 10px" />
+                Sign in with Google
+            </button>
         </a>
     """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+
     st.stop()
 
 # -----------------------
-# AUTHENTICATED CONTENT
+# AUTHENTICATED APP
 # -----------------------
 st.title("🤖 Rudrassa AI Content Generator")
 
 api_key = st.text_input("Enter your OpenAI API key:", type="password")
-user_query = st.text_area("Describe what you want:", height=100)
+user_query = st.text_area("📝 Describe what you want to generate:", height=100)
 
 def generate_response(prompt, key):
     try:
@@ -146,19 +124,19 @@ def generate_response(prompt, key):
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
-if st.button("🚀 Generate Content") and user_query and api_key:
-    with st.spinner("Generating..."):
+if st.button("⚡ Generate Content") and user_query and api_key:
+    with st.spinner("Generating your content..."):
         st.session_state.response_text = generate_response(user_query, api_key)
 
 if st.session_state.response_text:
-    st.subheader("✨ Generated Content")
+    st.subheader("✨ Your AI-Generated Content")
     st.write(st.session_state.response_text)
     st.download_button(
         "📥 Download as .txt",
         st.session_state.response_text,
-        file_name="ai_content.txt"
+        file_name="rudrassa_ai_content.txt"
     )
 
 # Footer
 st.markdown("---")
-st.caption("🔐 Secure login powered by Auth0 · Rudrassa AI 2025")
+st.caption("🔐 Secure login powered by Auth0 · Built by Rudrassa AI © 2025")
