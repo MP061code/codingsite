@@ -4,7 +4,7 @@ import time
 
 st.set_page_config(page_title="My AI Assistant", layout="wide")
 
-st.title("My AI Assistant")
+st.title("Rudrassa AI Assistant")
 
 # Input for OpenAI API key
 api_key = st.text_input("Enter your OpenAI API key:", type="password")
