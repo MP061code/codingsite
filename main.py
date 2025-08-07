@@ -61,7 +61,7 @@ if st.session_state.user:
         st.experimental_set_query_params()
         st.rerun()
 else:
-    st.markdown("## 🔒 Rudrassa AI Login")
+    st.markdown("##  Rudrassa AI Login")
     st.markdown("Login securely with your Gmail account via Auth0.")
 
     # Build login URL
@@ -72,14 +72,14 @@ else:
         "scope": "openid profile email",
     }
     login_url = f"{AUTH0_AUTHORIZE_URL}?{urllib.parse.urlencode(params)}"
-    st.markdown(f"[👉 Login with Google]({login_url})")
+    st.markdown(f"[ Login with Google]({login_url})")
     st.stop()
 
 # -----------------------
 # AUTHENTICATED CONTENT
 # -----------------------
 
-st.title("🤖 Rudrassa AI Content Generator")
+st.title(" Rudrassa AI Content Generator")
 
 api_key = st.text_input("Enter your OpenAI API key:", type="password")
 user_query = st.text_area("Describe what you want:", height=100)
@@ -109,7 +109,7 @@ if st.button("Generate Content") and user_query and api_key:
         st.session_state.response_text = generate_response(user_query, api_key)
 
 if st.session_state.response_text:
-    st.subheader("✨ Generated Content")
+    st.subheader(" Generated Content")
     st.write(st.session_state.response_text)
     st.download_button(
         "📥 Download as .txt",
@@ -119,4 +119,4 @@ if st.session_state.response_text:
 
 # Footer
 st.markdown("---")
-st.caption("🔐 Secure login powered by Auth0 · Rudrassa AI 2025")
+st.caption(" Secure login powered by Auth0 · Rudrassa AI 2025")
