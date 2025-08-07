@@ -1,0 +1,12 @@
+[theme]
+base="light"
+
+[server]
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+serverPort = 8501
+gatherUsageStats = false
+favicon = "rudrassaaaa.png"
