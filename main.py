@@ -1,26 +1,22 @@
 import streamlit as st
-import openai
-import time
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
-# ----------------- SECURE LOGIN BLOCK ------------------
-
-# You can also load from a config.yaml file for better practice
+# Secure config (in practice, load from external YAML file)
 config = {
     'credentials': {
         'usernames': {
             'admin': {
                 'email': 'admin@example.com',
                 'name': 'Admin User',
-                'password': '$2b$12$eIXoD9FHTU1v.ZD7wV6o1O2cJhTb0tSGOwbg.VA89ktmY8owEQFj6'  # Example bcrypt hash
+                'password': '$2b$12$eIXoD9FHTU1v.ZD7wV6o1O2cJhTb0tSGOwbg.VA89ktmY8owEQFj6'  # Hashed
             }
         }
     },
     'cookie': {
         'name': 'rudrassa_ai_auth',
-        'key': 'some_random_secret_key_here',  # Use a strong random key
+        'key': 'some_secret_key',
         'expiry_days': 1
     },
     'preauthorized': {
@@ -28,16 +24,15 @@ config = {
     }
 }
 
-# Create the authenticator
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
     config['cookie']['key'],
-    config['cookie']['expiry_days']
+    config['cookie']['expiry_days'],
 )
 
-# Login UI
-name, authentication_status, username = authenticator.login('Login', 'main')
+# 👇 Corrected login call with keyword argument
+name, authentication_status, username = authenticator.login('Login', location='main')
 
 if authentication_status is False:
     st.error('Username/password is incorrect')
@@ -47,7 +42,8 @@ elif authentication_status is None:
     st.stop()
 else:
     authenticator.logout('Logout', 'sidebar')
-    st.sidebar.success(f'Welcome, {name} 👋')
+    st.sidebar.success(f'Welcome, {name}')
+
 
 # ----------------- END OF LOGIN BLOCK ------------------
 
