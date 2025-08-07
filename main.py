@@ -1,78 +1,66 @@
 import streamlit as st
 import requests
+import urllib.parse
 
-# Load from secrets
-CLIENT_ID = st.secrets["auth0"]["client_id"]
-CLIENT_SECRET = st.secrets["auth0"]["client_secret"]
+# Load secrets
+AUTH0_CLIENT_ID = st.secrets["auth0"]["client_id"]
+AUTH0_CLIENT_SECRET = st.secrets["auth0"]["client_secret"]
 AUTH0_DOMAIN = st.secrets["auth0"]["domain"]
-REDIRECT_URI = st.secrets["auth0"]["redirect_uri"]
+AUTH0_REDIRECT_URI = st.secrets["auth0"]["redirect_uri"]
 
 AUTH0_AUTHORIZE_URL = f"https://{AUTH0_DOMAIN}/authorize"
 AUTH0_TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
 AUTH0_USERINFO_URL = f"https://{AUTH0_DOMAIN}/userinfo"
 
-# Set page
-st.set_page_config(page_title="🔐 Rudrassa AI Login", layout="centered")
-st.title("🔐 Rudrassa AI Login")
-st.write("Login securely with your Gmail account via Auth0.")
+# Set page config
+st.set_page_config(page_title="🔒 Rudrassa AI Login", layout="centered")
 
-# -------------------- Session Setup --------------------
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-# Get Auth0 code from query params
+# Handle Auth0 callback
 query_params = st.query_params
-auth_code = query_params.get("code", [None])[0]
 
-# 1. Show Login Button
-if not st.session_state.user and not auth_code:
-    login_url = (
-        f"{AUTH0_AUTHORIZE_URL}"
-        f"?response_type=code"
-        f"&client_id={CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
-        f"&scope=openid%20profile%20email"
-    )
-    st.markdown(f"[🟢 Login with Auth0]({login_url})", unsafe_allow_html=True)
+if "code" in query_params:
+    code = query_params["code"]
 
-# 2. Exchange Auth Code for Access Token
-if auth_code and not st.session_state.user:
-    try:
-        token_response = requests.post(AUTH0_TOKEN_URL, data={
-            "grant_type": "authorization_code",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "code": auth_code,
-            "redirect_uri": REDIRECT_URI,
-        })
+    # Exchange code for tokens
+    token_payload = {
+        "grant_type": "authorization_code",
+        "client_id": AUTH0_CLIENT_ID,
+        "client_secret": AUTH0_CLIENT_SECRET,
+        "code": code,
+        "redirect_uri": AUTH0_REDIRECT_URI
+    }
 
-        access_token = token_response.json().get("access_token")
+    token_response = requests.post(AUTH0_TOKEN_URL, json=token_payload)
+    token_data = token_response.json()
 
-        # 3. Get user info
-        user_info_response = requests.get(
-            AUTH0_USERINFO_URL,
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        user_info = user_info_response.json()
-        st.session_state.user = user_info
+    if "access_token" in token_data:
+        access_token = token_data["access_token"]
 
-        # Clear query params
-        st.query_params.clear()
+        # Get user info
+        headers = {"Authorization": f"Bearer {access_token}"}
+        userinfo_response = requests.get(AUTH0_USERINFO_URL, headers=headers)
+        userinfo = userinfo_response.json()
 
-    except Exception as e:
-        st.error(f"Authentication failed: {str(e)}")
-        st.stop()
+        st.success(f"✅ Logged in as {userinfo['email']}")
+        st.write("Welcome,", userinfo.get("name", "user"))
+        st.write("---")
+        st.write("🔐 Authenticated session data:")
+        st.json(userinfo)
 
-# 4. Show profile + logout
-if st.session_state.user:
-    user = st.session_state.user
-    st.success(f"✅ Logged in as {user.get('name')} ({user.get('email')})")
+    else:
+        st.error("Failed to authenticate. Try again.")
+else:
+    st.markdown("## 🔒 Rudrassa AI Login")
+    st.markdown("Login securely with your Gmail account via Auth0.")
 
-    if st.button("🔴 Logout"):
-        logout_url = (
-            f"https://{AUTH0_DOMAIN}/v2/logout?"
-            f"returnTo={REDIRECT_URI}&client_id={CLIENT_ID}"
-        )
-        st.session_state.user = None
-        st.query_params.clear()
-        st.markdown(f'<meta http-equiv="refresh" content="0;url={logout_url}">', unsafe_allow_html=True)
+    # Build the authorization URL
+    params = {
+        "response_type": "code",
+        "client_id": AUTH0_CLIENT_ID,
+        "redirect_uri": AUTH0_REDIRECT_URI,
+        "scope": "openid profile email",
+    }
+
+    login_url = f"{AUTH0_AUTHORIZE_URL}?{urllib.parse.urlencode(params)}"
+
+    st.markdown(f"[👉 Login with Auth0]({login_url})")
