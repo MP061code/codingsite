@@ -2,5 +2,6 @@ streamlit>=1.32.0
 openai>=1.3.5
 streamlit
 openai
-streamlit-authenticator
 pyyaml
+streamlit-authenticator==0.2.3
+
